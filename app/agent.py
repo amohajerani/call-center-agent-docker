@@ -1,34 +1,45 @@
 from typing import List, Optional
 import os
+from dotenv import load_dotenv
 from openai import OpenAI
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
 from langchain.agents import create_tool_calling_agent
 from langchain.agents import AgentExecutor
 from langchain_core.messages import AIMessage, HumanMessage
-from langchain.tools import BaseTool, StructuredTool, tool
+import tools as t
+import tool_agents
+from langchain.globals import set_verbose, set_debug
+set_debug(True)
 
+set_verbose(True)
 
-client = OpenAI(api_key=os.environ["OPENAI_API_KEY"])
+# Ensure environment variables are loaded
+load_dotenv()
 
+# Get the OpenAI API key from environment variables
+openai_api_key = os.getenv('OPENAI_API_KEY')
 
-@tool
-def verify_identity(name: str) -> bool:
-    """Verify the identify of the user based on their name"""
-    return True
+# Check if the OpenAI API key is not None before creating the client
+if openai_api_key is not None:
+    client = OpenAI(api_key=openai_api_key)
+else:
+    raise ValueError("OPENAI_API_KEY environment variable is not set")
 
 
 class LangChainAgent:
-    def __init__(self, system_prompt: str, model: Optional[str] = None):
-        self.system_prompt = system_prompt
-        self.model = model if model else "gpt-3.5-turbo"
+    def __init__(self, system_message: str):
+        self.model = "gpt-4o-mini"
 
         # Initialize LangChain OpenAI LLM
-        self.llm = ChatOpenAI(model=self.model, temperature=0)
+        if openai_api_key is not None:
+            self.llm = ChatOpenAI(model=self.model, temperature=0)
+        else:
+            raise ValueError("OPENAI_API_KEY environment variable is not set")
 
         self.prompt = ChatPromptTemplate.from_messages(
             [
-                ("system", system_prompt),
+                ("system", system_message),
                 ("placeholder", "{chat_history}"),
                 ("human", "{input}"),
                 ("placeholder", "{agent_scratchpad}"),
@@ -36,9 +47,11 @@ class LangChainAgent:
         )
 
         # Create a simple tool
-        self.tools = [verify_identity]
+        self.tools = [
+            tool_agents.database_query_tool, t.schedule_appointment]
 
-        self.agent = create_tool_calling_agent(self.llm, self.tools, self.prompt)
+        self.agent = create_tool_calling_agent(
+            self.llm, self.tools, self.prompt)
 
         self.agent_executor = AgentExecutor(
             agent=self.agent, tools=self.tools, verbose=True
@@ -60,6 +73,6 @@ class LangChainAgent:
         return res["output"]
 
 
-def run_agent(system_prompt: str, transcript: List[str]) -> str:
-    lc_agent = LangChainAgent(system_prompt)
+def run_agent(system_message: str,  transcript: List[str]) -> str:
+    lc_agent = LangChainAgent(system_message)
     return lc_agent.get_response(transcript)
