@@ -58,16 +58,16 @@ query_agent_executor = create_sql_agent(
 
 
 @tool
-def database_query_tool(question: str) -> str:
+def update_databse(question: str) -> str:
     """
-    Execute a natural language query on the database and return the results.
-    The database holds information about the members, providers, appointments and availabilities.
+    Use this tool for the following purposes:
+    - update member's information such as their contact information, email, address, medical conditions and demographics.
 
     Args:
-    question (str): The natural language question or instruction.
+    question (str): The natural language question or instruction. 
 
     Returns:
-    str: The answer to the question based on the SQL query results.
+    str: result od the database update operation.
     """
     try:
         result = query_agent_executor.run(question)
