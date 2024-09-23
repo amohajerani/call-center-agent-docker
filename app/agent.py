@@ -48,13 +48,12 @@ class LangChainAgent:
 
         # Create a simple tool
         self.tools = [
-            tool_agents.update_databse, 
+            tool_agents.update_databse,
             t.cancel_appointment,
-            t.get_member_information, 
-            t.get_provider_information, 
-            t.return_frequently_asked_questions, 
+            t.get_member_information,
+            t.get_provider_information,
             t.schedule_appointment,
-            ]
+        ]
 
         self.agent = create_tool_calling_agent(
             self.llm, self.tools, self.prompt)

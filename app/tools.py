@@ -61,7 +61,6 @@ def get_member_information(phone_number: str) -> dict:
     if not result:
         return {"error": f"Member not found with phone number {phone_number}"}
 
-  
     member_id = result[0]
     first_name = result[1]
     last_name = result[2]
@@ -72,7 +71,6 @@ def get_member_information(phone_number: str) -> dict:
     state = result[8]
     zip_code = result[9]
     email = result[10]
-
 
     # find all the member's appointments
     query = f"""
@@ -96,13 +94,13 @@ def get_member_information(phone_number: str) -> dict:
         appointment_time = appointment[2].strftime("%I:%M %p")
         appointment_status = appointment[7].capitalize()
         provider_name = f"{appointment[8]} {appointment[9]}"
-        
+
         description = f"Appointment ID {appointment_id}: Appointment on {appointment_date} at {appointment_time} with Dr. {provider_name}. "
         description += f"Location: {appointment[3]}, {appointment[4]}, {appointment[5]} {appointment[6]}. "
         description += f"Status: {appointment_status}."
-        
+
         appointment_descriptions.append(description)
-        if len(appointment_descriptions)==0:
+        if len(appointment_descriptions) == 0:
             appointment_descriptions.append("No past or future appointments.")
 
     member_info = f"""
@@ -207,7 +205,7 @@ def schedule_appointment(member_phone: str, appointment_date: str, appointment_t
 
         if not availability_result:
             return "Error: No provider available at the specified date and time."
-        
+
         provider_id = availability_result[0]
         # update the provider availability to unavailable
         update_availability_query = """
@@ -218,12 +216,11 @@ def schedule_appointment(member_phone: str, appointment_date: str, appointment_t
         AND %s::time >= start_time 
         AND %s::time < end_time
         """
-        cur.execute(update_availability_query, (provider_id, appointment_date, appointment_time, appointment_time))
+        cur.execute(update_availability_query, (provider_id,
+                    appointment_date, appointment_time, appointment_time))
         if cur.rowcount == 0:
             conn.rollback()
             return "Error: Failed to update provider availability."
-
-        
 
         # Insert the appointment
         insert_query = """
@@ -270,7 +267,7 @@ def cancel_appointment(appointment_id: int):
             FROM appointments
             WHERE id = %s AND status != 'cancelled'
         """, (appointment_id,))
-        
+
         appointment = cur.fetchone()
         if not appointment:
             return f"Error: Appointment with ID {appointment_id} not found or already cancelled."
@@ -312,24 +309,3 @@ def cancel_appointment(appointment_id: int):
 
     finally:
         conn.close()
-
-@tool
-def return_frequently_asked_questions():
-    """
-    This tool holds FAQ, or frequently asked questions that members generally ask the call center represenatives.
-
-    Args:
-        No arguments
-
-    Returns:
-        (str): the corpus of company's FAQ
-    """
-    try:
-        with open('faq.txt', 'r') as file:
-            faq_content = file.read()
-        return faq_content
-    except FileNotFoundError:
-        return "Error: FAQ file not found."
-    except IOError:
-        return "Error: Unable to read the FAQ file."
-
