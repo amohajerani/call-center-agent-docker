@@ -191,8 +191,8 @@ def schedule_appointment(member_phone: str, appointment_date: str, appointment_t
         SELECT provider_id 
         FROM availability 
         WHERE date = %s
-        #AND %s::time >= start_time 
-        #AND %s::time < end_time
+        AND %s::time >= start_time 
+        AND %s::time < end_time
         AND status = 'available'
         LIMIT 1
         """
