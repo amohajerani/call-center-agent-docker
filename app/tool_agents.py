@@ -2,12 +2,11 @@
 This script contains tools for the AI agent. These tools are also agents.
 
 """
-from langchain_core.prompts import PromptTemplate
-from langchain_community.llms import OpenAI
+
 from langchain_community.utilities import SQLDatabase
-from langchain.agents import create_sql_agent
+from langchain_community.agent_toolkits.sql.base import create_sql_agent
 from langchain_community.agent_toolkits.sql.toolkit import SQLDatabaseToolkit
-from langchain.chat_models import ChatOpenAI
+from langchain_openai import ChatOpenAI
 from langchain.agents.agent_types import AgentType
 import os
 from dotenv import load_dotenv
@@ -17,7 +16,7 @@ from langchain.tools import tool
 load_dotenv()
 
 # Set up the database connection
-db = SQLDatabase.from_uri(os.getenv('DATABASE_URL'))
+db = SQLDatabase.from_uri(os.getenv("DATABASE_URL"))
 
 # Set up the language model
 llm = ChatOpenAI(temperature=0, model_name="gpt-4o-mini")
@@ -53,7 +52,6 @@ query_agent_executor = create_sql_agent(
     handle_parsing_errors=True,
     prefix=prefix,
     top_k=10,
-
 )
 
 
@@ -64,7 +62,7 @@ def update_databse(question: str) -> str:
     - update member's information such as their contact information, email, address, medical conditions and demographics.
 
     Args:
-    question (str): The natural language question or instruction. 
+    question (str): The natural language question or instruction.
 
     Returns:
     str: result od the database update operation.

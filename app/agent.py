@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import List
 import os
 from dotenv import load_dotenv
 from openai import OpenAI
@@ -10,6 +10,7 @@ from langchain_core.messages import AIMessage, HumanMessage
 import tools as t
 import tool_agents
 from langchain.globals import set_verbose, set_debug
+
 set_debug(True)
 
 set_verbose(True)
@@ -18,7 +19,7 @@ set_verbose(True)
 load_dotenv()
 
 # Get the OpenAI API key from environment variables
-openai_api_key = os.getenv('OPENAI_API_KEY')
+openai_api_key = os.getenv("OPENAI_API_KEY")
 
 # Check if the OpenAI API key is not None before creating the client
 if openai_api_key is not None:
@@ -55,8 +56,7 @@ class LangChainAgent:
             t.schedule_appointment,
         ]
 
-        self.agent = create_tool_calling_agent(
-            self.llm, self.tools, self.prompt)
+        self.agent = create_tool_calling_agent(self.llm, self.tools, self.prompt)
 
         self.agent_executor = AgentExecutor(
             agent=self.agent, tools=self.tools, verbose=True
@@ -78,6 +78,6 @@ class LangChainAgent:
         return res["output"]
 
 
-def run_agent(system_message: str,  transcript: List[str]) -> str:
+def run_agent(system_message: str, transcript: List[str]) -> str:
     lc_agent = LangChainAgent(system_message)
     return lc_agent.get_response(transcript)
