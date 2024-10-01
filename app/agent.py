@@ -54,6 +54,7 @@ class LangChainAgent:
             t.get_member_information,
             t.get_provider_information,
             t.schedule_appointment,
+            t.escalate_call,
         ]
 
         self.agent = create_tool_calling_agent(self.llm, self.tools, self.prompt)

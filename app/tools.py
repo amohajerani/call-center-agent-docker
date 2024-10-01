@@ -309,3 +309,40 @@ def cancel_appointment(appointment_id: int):
 
     finally:
         conn.close()
+
+
+@tool
+def escalate_call(member_id, description):
+    """
+    Use this tool to escalate a call. This tool will notify the supervisors and provide them with a summary to call the member back.
+
+    Args:
+        member_id (int): the member id
+        description (str): A summary description of the escalation.
+
+    Returns:
+        str: confirmation that the call was escalated and the supervisor will call back shortly.
+    """
+    conn = connect_to_db()
+    cur = conn.cursor()
+
+    try:
+        current_time = datetime.now()
+        cur.execute("""
+            INSERT INTO escalations (time, member_id, description, de_escalated)
+            VALUES (%s, %s, %s, %s)
+        """, (current_time, member_id, description, False))
+        
+        if cur.rowcount == 0:
+            conn.rollback()
+            return "Failed to escalate call."
+        
+        conn.commit()
+        return "Call escalated and supervisor will call back shortly."
+
+    except Exception as e:
+        conn.rollback()
+        return f"Error escalating call: {str(e)}"
+
+    finally:
+        conn.close()
