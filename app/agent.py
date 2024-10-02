@@ -57,6 +57,7 @@ class LangChainAgent:
         - Only use the information provided and the existing tools and databases for your answers. 
         - Be brief. Keep answers under 100 words.
         - Be mindful of the member's privacy. Do not share any information about other members.
+        - If you cannot verify the first and last names of the member associated with the phone number, do not disclose any information about the member associated with the phone number.
         - Verify the member's name. Do not proceed unless the first name and last name match the ones associated with the phone number. If the member only provides a first name, ask for their last name.
         - Confirm any actions taken during the call with the member to ensure clarity.
         - Before making any new appointments, or changes to existing appointments or the member's information, confirm the information with the member to ensure clarity.
