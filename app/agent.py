@@ -70,9 +70,11 @@ class LangChainAgent:
         ### Current Date and Time:
         {formatted_time}
 
+        ### Member Information:
         {member_information}
 
         """
+        print(f'system message: {system_message}')
 
         # Initialize LangChain OpenAI LLM
         if openai_api_key is not None:
@@ -93,7 +95,6 @@ class LangChainAgent:
         self.tools = [
             tool_agents.update_databse,
             t.cancel_appointment,
-            t.get_member_information,
             t.get_provider_information,
             t.schedule_appointment,
             t.escalate_call,

@@ -31,7 +31,7 @@ else:
     raise ValueError("OPENAI_API_KEY environment variable is not set")
 
 
-@tool
+
 def get_member_information(phone_number: str) -> dict:
     """
     This function retrieves all the member's information, including their name, contact information, age, gender, medical conditions, past and future appointments.
@@ -65,7 +65,7 @@ def get_member_information(phone_number: str) -> dict:
     result = cur.fetchone()
 
     if not result:
-        return {"error": f"Member not found with phone number {phone_number}"}
+        return f"No Member information was found for the phone number {phone_number}"
 
     member_id = result[0]
     first_name = result[1]
@@ -110,7 +110,6 @@ def get_member_information(phone_number: str) -> dict:
             appointment_descriptions.append("No past or future appointments.")
 
     member_info = f"""
-    ### Member Information:
     Member ID: {member_id}
     First Name: {first_name}
     Last Name: {last_name}
