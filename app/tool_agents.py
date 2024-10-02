@@ -11,6 +11,7 @@ from langchain.agents.agent_types import AgentType
 import os
 from dotenv import load_dotenv
 from langchain.tools import tool
+from shared import member_info_cache
 
 # Load environment variables
 load_dotenv()
@@ -56,17 +57,22 @@ query_agent_executor = create_sql_agent(
 
 
 @tool
-def update_databse(question: str) -> str:
+def update_databse(question: str, phone_number) -> str:
     """
     Use this tool for the following purposes:
     - update member's information such as their contact information, email, address, medical conditions and demographics.
 
     Args:
-    question (str): The natural language question or instruction.
+        question (str): The natural language question or instruction.
+        phone_number (str): The member's phone number, formatted as XXX-XXX-XXXX
 
     Returns:
-    str: result od the database update operation.
+        str: result of the database update operation.
     """
+    # update the member_info_cache
+    if phone_number in member_info_cache:
+        member_info_cache[phone_number]["up_to_date"] = False
+
     try:
         result = query_agent_executor.run(question)
         return result

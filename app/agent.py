@@ -14,7 +14,6 @@ from langchain.globals import set_verbose, set_debug
 set_debug(True)
 
 set_verbose(True)
-member_info_cache = {}
 
 
 from datetime import datetime
@@ -35,7 +34,7 @@ else:
 class LangChainAgent:
     def __init__(self, phone_number):
         self.model = "gpt-4o-mini"
-        member_information = member_info_cache[phone_number]["member_information"]
+        member_information = t.get_member_information(phone_number)
         now = datetime.now()
         formatted_time = now.strftime("%A, %B %d, %I:%M%p")
         system_message = f"""
@@ -123,19 +122,5 @@ class LangChainAgent:
 
 
 def run_agent(transcript: List[str], phone_number) -> str:
-    global member_info_cache
-    if (
-        phone_number in member_info_cache
-        and member_info_cache[phone_number]["up_to_date"]
-    ):
-        member_information = member_info_cache[phone_number]["member_information"]
-        print('using existing member info')
-    else:
-        print('query member info')
-        member_information = t.get_member_information(phone_number)
-        member_info_cache[phone_number] = {
-            "member_information": member_information,
-            "up_to_date": True,
-        }
     lc_agent = LangChainAgent(phone_number)
     return lc_agent.get_response(transcript)

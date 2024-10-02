@@ -1,20 +1,18 @@
-from psycopg2 import sql
 import psycopg2
-from langchain.tools import BaseTool, StructuredTool, tool
+from langchain.tools import tool
 from dotenv import load_dotenv
 import os
 from openai import OpenAI
-from langchain_openai import ChatOpenAI
-import ast
-import re
-from datetime import datetime, date
+
+from datetime import datetime
+from shared import member_info_cache
 
 # Ensure environment variables are loaded
 load_dotenv()
 
 # Get the connection string from environment variables
-connection_string = os.getenv('DATABASE_URL')
-openai_api_key = os.getenv('OPENAI_API_KEY')
+connection_string = os.getenv("DATABASE_URL")
+openai_api_key = os.getenv("OPENAI_API_KEY")
 
 
 def connect_to_db():
@@ -43,9 +41,17 @@ def get_member_information(phone_number: str) -> dict:
     Returns:
         str: information about the member's name, contact information, age, gender, medical conditions, past and future appointments.
     """
+    # Check if the member information is already in the cache and it is up to date
+    print(f'member_info_cache: {member_info_cache}')
+    if (
+        phone_number in member_info_cache
+        and member_info_cache[phone_number]["up_to_date"]
+    ):
+        member_information = member_info_cache[phone_number]["info"]
+        return member_information
     conn = connect_to_db()
     cur = conn.cursor()
-    print(f'phone_number in the function call: {phone_number}')
+
     query = f"""
     SELECT 
         id, first_name, last_name, phone_number, 
@@ -54,7 +60,7 @@ def get_member_information(phone_number: str) -> dict:
     FROM members
     WHERE phone_number = '{phone_number}'
     """
-    print(f'query: {query}')
+
     cur.execute(query)
     result = cur.fetchone()
 
@@ -116,6 +122,8 @@ def get_member_information(phone_number: str) -> dict:
     Appointments:
     {chr(10).join(f"- {appointment}" for appointment in appointment_descriptions)}
     """
+    # Update the cache with the member information
+    member_info_cache[phone_number] = {"info": member_info, "up_to_date": True}
     return member_info
 
 
@@ -135,7 +143,7 @@ def get_provider_information(provider_id: str) -> dict:
     FROM providers
     WHERE id = {provider_id}
     """
-    print(f'query: {query}')
+
     cur.execute(query)
     result = cur.fetchone()
     conn.close()
@@ -157,17 +165,22 @@ def get_provider_information(provider_id: str) -> dict:
 
 
 @tool
-def schedule_appointment(member_phone: str, appointment_date: str, appointment_time: str) -> str:
+def schedule_appointment(
+    member_phone: str, appointment_date: str, appointment_time: str
+) -> str:
     """
     Schedule an appointment for a member with an available provider.
     Args:
-    member_phone (str): The phone number of the member.
-    appointment_date (str): The date of the appointment (format: YYYY-MM-DD).
-    appointment_time (str): The time of the appointment (format: HH:MM).
+        member_phone (str): The phone number of the member.
+        appointment_date (str): The date of the appointment (format: YYYY-MM-DD).
+        appointment_time (str): The time of the appointment (format: HH:MM).
 
     Returns:
-    str: A confirmation message for the scheduled appointment.
+        str: A confirmation message for the scheduled appointment.
     """
+    # update the member_info_cache
+    if member_phone in member_info_cache:
+        member_info_cache[member_phone]["up_to_date"] = False
     conn = connect_to_db()
     cur = conn.cursor()
 
@@ -196,11 +209,11 @@ def schedule_appointment(member_phone: str, appointment_date: str, appointment_t
         AND status = 'available'
         LIMIT 1
         """
-        print(
-            f"availability_query: {cur.mogrify(availability_query, (appointment_date, appointment_time, appointment_time)).decode('utf-8')}")
 
-        cur.execute(availability_query, (appointment_date,
-                    appointment_time, appointment_time))
+
+        cur.execute(
+            availability_query, (appointment_date, appointment_time, appointment_time)
+        )
         availability_result = cur.fetchone()
 
         if not availability_result:
@@ -216,8 +229,10 @@ def schedule_appointment(member_phone: str, appointment_date: str, appointment_t
         AND %s::time >= start_time 
         AND %s::time < end_time
         """
-        cur.execute(update_availability_query, (provider_id,
-                    appointment_date, appointment_time, appointment_time))
+        cur.execute(
+            update_availability_query,
+            (provider_id, appointment_date, appointment_time, appointment_time),
+        )
         if cur.rowcount == 0:
             conn.rollback()
             return "Error: Failed to update provider availability."
@@ -231,10 +246,20 @@ def schedule_appointment(member_phone: str, appointment_date: str, appointment_t
         VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, 'scheduled')
         RETURNING id
         """
-        cur.execute(insert_query, (
-            member_id, provider_id, member_phone, appointment_date, appointment_time,
-            street_address, city, state, zip_code
-        ))
+        cur.execute(
+            insert_query,
+            (
+                member_id,
+                provider_id,
+                member_phone,
+                appointment_date,
+                appointment_time,
+                street_address,
+                city,
+                state,
+                zip_code,
+            ),
+        )
         appointment_id = cur.fetchone()[0]
         conn.commit()
         return f"Appointment scheduled successfully. Appointment ID: {appointment_id}"
@@ -248,25 +273,32 @@ def schedule_appointment(member_phone: str, appointment_date: str, appointment_t
 
 
 @tool
-def cancel_appointment(appointment_id: int):
+def cancel_appointment(appointment_id: int, phone_number: str) -> str:
     """
     Cancel an appointment.
     Args:
         appointment_id (int): The ID of the appointment
+        phone_number (str): The phone number of the member, formatted as XXX-XXX-XXXX
 
     Returns:
     str: confirmation of the cancelled appointment
     """
+    # update the member_info_cache
+    if phone_number in member_info_cache:
+        member_info_cache[phone_number]["up_to_date"] = False
     conn = connect_to_db()
     cur = conn.cursor()
 
     try:
         # First, get the appointment details
-        cur.execute("""
+        cur.execute(
+            """
             SELECT provider_id, date, time
             FROM appointments
             WHERE id = %s AND status != 'cancelled'
-        """, (appointment_id,))
+        """,
+            (appointment_id,),
+        )
 
         appointment = cur.fetchone()
         if not appointment:
@@ -275,25 +307,31 @@ def cancel_appointment(appointment_id: int):
         provider_id, appointment_date, appointment_time = appointment
 
         # Update the appointment status to 'cancelled'
-        cur.execute("""
+        cur.execute(
+            """
             UPDATE appointments
             SET status = 'cancelled'
             WHERE id = %s
-        """, (appointment_id,))
+        """,
+            (appointment_id,),
+        )
 
         if cur.rowcount == 0:
             conn.rollback()
             return f"Error: Failed to cancel appointment with ID {appointment_id}."
 
         # Update the provider's availability back to 'available'
-        cur.execute("""
+        cur.execute(
+            """
             UPDATE availability
             SET status = 'available'
             WHERE provider_id = %s
             AND date = %s
             AND %s::time >= start_time 
             AND %s::time < end_time
-        """, (provider_id, appointment_date, appointment_time, appointment_time))
+        """,
+            (provider_id, appointment_date, appointment_time, appointment_time),
+        )
 
         # Add this check
         if cur.rowcount == 0:
@@ -328,15 +366,18 @@ def escalate_call(member_id, description):
 
     try:
         current_time = datetime.now()
-        cur.execute("""
+        cur.execute(
+            """
             INSERT INTO escalations (time, member_id, description, de_escalated)
             VALUES (%s, %s, %s, %s)
-        """, (current_time, member_id, description, False))
-        
+        """,
+            (current_time, member_id, description, False),
+        )
+
         if cur.rowcount == 0:
             conn.rollback()
             return "Failed to escalate call."
-        
+
         conn.commit()
         return "Call escalated and supervisor will call back shortly."
 
