@@ -423,12 +423,62 @@ def insert_availability_records():
             print("Availability records inserted successfully.")
 
 
+def create_escalations_table():
+    """
+    Create the escalations table if it doesn't exist.
+    """
+    create_table_query = """
+    CREATE TABLE IF NOT EXISTS escalations (
+        id SERIAL PRIMARY KEY,
+        member_id INTEGER REFERENCES members(id),
+        status VARCHAR(20) CHECK (status IN ('escalated', 'de_escalated')),
+        description TEXT,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    )
+    """
+    with psycopg2.connect(connection_string) as conn:
+        with conn.cursor() as cur:
+            cur.execute(create_table_query)
+            cur.execute("""
+                COMMENT ON TABLE escalations IS 'Table containing escalation information including member ID, de-escalation status, and description.';
+            """)
+            conn.commit()
+            print("Table 'escalations' created successfully.")
+
+
+
+def insert_escalations_records():
+    load_dotenv()
+    connection_string = os.getenv('DATABASE_URL')
+
+    with psycopg2.connect(connection_string) as conn:
+        with conn.cursor() as cur:
+            # Sample escalation records
+            escalation_records = [
+                (1, 'escalated', 'Member requested supervisor to call back.'),
+                (2, 'de_escalated', 'Issue resolved after follow-up.'),
+                (3, 'escalated', 'Member expressed dissatisfaction with service.')
+            ]
+
+            # Insert records into the escalations table
+            insert_query = """
+            INSERT INTO escalations (member_id, status, description)
+            VALUES (%s, %s, %s)
+            """
+            cur.executemany(insert_query, escalation_records)
+            conn.commit()
+            print("Escalation records inserted successfully.")
+            
+
+
+
 # Call the function
 if __name__ == "__main__":
     delete_table('appointments')
     delete_table('providers')
     delete_table('members')
     delete_table('availability')
+    delete_table('escalations')
     create_members_table()
     insert_members_records()
     create_providers_table()
@@ -437,3 +487,5 @@ if __name__ == "__main__":
     insert_appointments_records()
     create_availability_table()
     insert_availability_records()
+    create_escalations_table()
+    insert_escalations_records()

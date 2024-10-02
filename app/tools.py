@@ -42,7 +42,7 @@ def get_member_information(phone_number: str) -> dict:
         str: information about the member's name, contact information, age, gender, medical conditions, past and future appointments.
     """
     # Check if the member information is already in the cache and it is up to date
-    print(f'member_info_cache: {member_info_cache}')
+    print(f"member_info_cache: {member_info_cache}")
     if (
         phone_number in member_info_cache
         and member_info_cache[phone_number]["up_to_date"]
@@ -210,7 +210,6 @@ def schedule_appointment(
         LIMIT 1
         """
 
-
         cur.execute(
             availability_query, (appointment_date, appointment_time, appointment_time)
         )
@@ -368,10 +367,10 @@ def escalate_call(member_id, description):
         current_time = datetime.now()
         cur.execute(
             """
-            INSERT INTO escalations (time, member_id, description, de_escalated)
+            INSERT INTO escalations (member_id, status, description, created_at)
             VALUES (%s, %s, %s, %s)
         """,
-            (current_time, member_id, description, False),
+            (member_id, "escalated", description, current_time),
         )
 
         if cur.rowcount == 0:
