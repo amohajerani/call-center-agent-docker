@@ -40,7 +40,7 @@ def _run_agent():
     data = request.json
     logging.info(f"Received request body: {data}")
     result = agent.run_agent(
-        data["system_message"], data["transcript"])
+        data["transcript"], data["phone_number"])
     return jsonify(result=result)
 
 

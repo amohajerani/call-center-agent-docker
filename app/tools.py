@@ -104,7 +104,7 @@ def get_member_information(phone_number: str) -> dict:
             appointment_descriptions.append("No past or future appointments.")
 
     member_info = f"""
-    Member's information pulled from the database:
+    ### Member Information:
     Member ID: {member_id}
     First Name: {first_name}
     Last Name: {last_name}
