@@ -430,7 +430,7 @@ def create_escalations_table():
     create_table_query = """
     CREATE TABLE IF NOT EXISTS escalations (
         id SERIAL PRIMARY KEY,
-        member_id INTEGER REFERENCES members(id),
+        phone_number VARCHAR(20) UNIQUE NOT NULL,
         status VARCHAR(20) CHECK (status IN ('escalated', 'de_escalated')),
         description TEXT,
         created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
@@ -440,7 +440,7 @@ def create_escalations_table():
         with conn.cursor() as cur:
             cur.execute(create_table_query)
             cur.execute("""
-                COMMENT ON TABLE escalations IS 'Table containing escalation information including member ID, de-escalation status, and description.';
+                COMMENT ON TABLE escalations IS 'Table containing escalation information including phone number, de-escalation status, and description.';
             """)
             conn.commit()
             print("Table 'escalations' created successfully.")
@@ -455,20 +455,20 @@ def insert_escalations_records():
         with conn.cursor() as cur:
             # Sample escalation records
             escalation_records = [
-                (1, 'escalated', 'Member requested supervisor to call back.'),
-                (2, 'de_escalated', 'Issue resolved after follow-up.'),
-                (3, 'escalated', 'Member expressed dissatisfaction with service.')
+                ('555-932-4455', 'escalated', 'Member requested supervisor to call back.'),
+                ('215-999-2234', 'de_escalated', 'Issue resolved after follow-up.'),
+                ('848-321-4456', 'escalated', 'Member expressed dissatisfaction with service.')
             ]
 
             # Insert records into the escalations table
             insert_query = """
-            INSERT INTO escalations (member_id, status, description)
+            INSERT INTO escalations (phone_number, status, description)
             VALUES (%s, %s, %s)
             """
             cur.executemany(insert_query, escalation_records)
             conn.commit()
             print("Escalation records inserted successfully.")
-            
+
 
 
 

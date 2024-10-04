@@ -95,6 +95,7 @@ def get_member_information(phone_number: str) -> dict:
 
     appointment_descriptions = []
     for appointment in appointments:
+        print(f'appointment: {appointment}')
         appointment_id = appointment[0]
         appointment_date = appointment[1].strftime("%B %d, %Y")
         appointment_time = appointment[2].strftime("%I:%M %p")
@@ -227,6 +228,7 @@ def schedule_appointment(
         AND %s::time >= start_time 
         AND %s::time < end_time
         """
+        print(f'update_availability_query: {update_availability_query}')
         cur.execute(
             update_availability_query,
             (provider_id, appointment_date, appointment_time, appointment_time),
@@ -348,12 +350,12 @@ def cancel_appointment(appointment_id: int, phone_number: str) -> str:
 
 
 @tool
-def escalate_call(member_id, description):
+def escalate_call(phone_number, description):
     """
     Use this tool to escalate a call. This tool will notify the supervisors and provide them with a summary to call the member back.
 
     Args:
-        member_id (int): the member id
+        phone_number (int): the caller's phone number, formatted as XXX-XXX-XXXX
         description (str): A summary description of the escalation.
 
     Returns:
@@ -366,10 +368,10 @@ def escalate_call(member_id, description):
         current_time = datetime.now()
         cur.execute(
             """
-            INSERT INTO escalations (member_id, status, description, created_at)
+            INSERT INTO escalations (phone_number, status, description, created_at)
             VALUES (%s, %s, %s, %s)
         """,
-            (member_id, "escalated", description, current_time),
+            (phone_number, "escalated", description, current_time),
         )
 
         if cur.rowcount == 0:
